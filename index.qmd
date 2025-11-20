@@ -1,0 +1,148 @@
+---
+title: "Trump SOTU Analysis"
+format: html
+execute:
+  echo: false      # hide code
+  warning: false   # hide warnings
+  message: false   # hide messages
+
+---
+
+
+```{r, echo=FALSE}
+library(tibble)
+library(tidyverse)
+library(kableExtra)
+library(htmltools)
+library(magrittr)
+
+```
+
+
+```{r, echo=FALSE}
+# data
+df <- tribble(
+  ~policy, ~`2017`, ~`2018`, ~`2019`, ~`2020`, ~`2025`,
+  "MacroEcnomics", 10, 46, 18, 23, 50,
+  "CivilRights", 3, 3, 11, 15, 26,
+  "Health", 28, 37, 33, 43, 6,
+  "Agriculture", 0, 0, 0, 0, 8,
+  "Labor", 4, 5, 3, 6, 4,
+  "Education", 9, 1, 1, 14, 2,
+  "Environment", 0, 0, 0, 1, 3,
+  "Energy", 3, 2, 2, 2, 7,
+  "Immigration", 19, 42, 20, 18, 16,
+  "Transportation", 7, 12, 4, 3, 4,
+  "LawCrime", 22, 28, 61, 21, 66,
+  "SocialWelfare", 3, 2, 1, 7, 16,
+  "Housing", 2, 0, 0, 5, 0,
+  "Commerce", 3, 9, 1, 1, 1,
+  "Defense", 26, 48, 40, 40, 25,
+  "ScienceTechnology", 1, 0, 1, 4, 7,
+  "Trade", 15, 6, 14, 16, 44,
+  "IntlAffairs", 15, 43, 14, 25, 53,
+  "GovOperations", 7, 3, 4, 6, 34,
+  "PublicLands", 0, 4, 0, 0, 2
+)
+# Convert to long format
+long_df <- df %>%
+  pivot_longer(cols = -policy, names_to = "year", values_to = "count") %>%
+  mutate(year = as.character(year))
+# Calculate total counts per year
+year_totals <- long_df %>%
+  group_by(year) %>%
+  summarize(year_total = sum(count))
+# Join and calculate proportions
+long_df <- long_df %>%
+  left_join(year_totals, by = "year") %>%
+  mutate(proportion = count / year_total)
+# Calculate mean proportion per policy
+mean_props <- long_df %>%
+  group_by(policy) %>%
+  summarize(mean_prop = mean(proportion, na.rm = TRUE))
+# Calculate deviation from mean
+long_df <- long_df %>%
+  left_join(mean_props, by = "policy") %>%
+  mutate(deviation = abs(proportion - mean_prop))
+# Average deviation per policy
+avg_dev <- long_df %>%
+  group_by(policy) %>%
+  summarize(avg_deviation = mean(deviation))
+# Create comprehensive table
+comprehensive_table <- long_df %>%
+  left_join(avg_dev, by = "policy") %>%
+  arrange(policy, year)
+# Create a new data frame with renamed columns using base R
+# Convert proportion values to percentages
+formatted_df <- data.frame(
+  Policy = comprehensive_table$policy,
+  Year = comprehensive_table$year,
+  Count = comprehensive_table$count,
+  Year_Total = comprehensive_table$year_total,
+  Proportion = paste0(round(comprehensive_table$proportion * 100, 2), "%"),
+  Mean_Proportion = paste0(round(comprehensive_table$mean_prop * 100, 2), "%"),
+  Deviation = paste0(round(comprehensive_table$deviation * 100, 2), "%"),
+  Avg_Deviation = paste0(round(comprehensive_table$avg_deviation * 100, 2), "%")
+)
+
+
+
+# new data frame with renamed columns using base R
+# Convert proportion values to percentages
+formatted_df <- data.frame(
+  Policy = comprehensive_table$policy,
+  Year = comprehensive_table$year,
+  Count = comprehensive_table$count,
+  Year_Total = comprehensive_table$year_total,
+  Proportion = paste0(round(comprehensive_table$proportion * 100, 2), "%"),
+  Mean_Proportion = paste0(round(comprehensive_table$mean_prop * 100, 2), "%"),
+  Deviation = paste0(round(comprehensive_table$deviation * 100, 2), "%"),
+  Avg_Deviation = paste0(round(comprehensive_table$avg_deviation * 100, 2), "%")
+)
+
+# indicate absolute deviations 
+names(formatted_df) <- c(
+  "Policy", "Year", "Count", "Year Total", 
+  "Proportion", "Mean Proportion", 
+  "Absolute Deviation", "Average Absolute Deviation"
+)
+
+# colors
+ut_burnt_orange <- "#BF5700"  
+ut_white <- "#FFFFFF"         
+ut_accent_gray <- "#333F48"   
+ut_light_gray <- "#F2F3F4"    
+
+
+
+
+# Create the kable table
+formatted_table2 <- kbl(
+    formatted_df,
+    caption = "Comprehensive Policy Data Analysis (%)<br><small>Note: The last two columns show the absolute value of the deviation from the mean proportion and the average absolute deviation per policy.</small>",
+    format = "html",
+    align = "c",
+    booktabs = TRUE,
+    escape = FALSE  # Needed for percentage signs
+  ) %>%
+  kable_styling(
+    bootstrap_options = c("condensed", "responsive"),
+    full_width = FALSE,
+    font_size = 12
+  ) %>%
+  column_spec(1, bold = TRUE, color = ut_burnt_orange) %>%
+  # Collapse rows for Policy, Mean Proportion, and Average Absolute Deviation
+  collapse_rows(columns = c(1, 6, 8), valign = "middle") %>%
+  add_header_above(
+    c(" " = 2, "Counts" = 2, "Percentages" = 4),
+    background = ut_burnt_orange,
+    color = ut_white,
+    font_size = 13
+  ) %>%
+  row_spec(0, bold = TRUE, color = ut_white, background = ut_burnt_orange) %>%
+  row_spec(seq(1, nrow(formatted_df), by = 2), background = ut_light_gray) %>%
+  row_spec(seq(2, nrow(formatted_df), by = 2), background = ut_white)
+
+# table
+formatted_table2
+```
